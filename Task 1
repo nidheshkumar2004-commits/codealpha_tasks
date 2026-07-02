@@ -1,0 +1,51 @@
+pip install scapy
+
+
+from scapy.all import sniff
+from scapy.layers.inet import IP, TCP, UDP, ICMP
+
+def packet_callback(packet):
+    """
+    This function is called for every packet captured by the sniffer.
+    It extracts and prints the source/destination IPs, the protocol, and the payload.
+    """
+    # 1. Check if the packet contains an Internet Protocol (IP) layer
+    if packet.haslayer(IP):
+        ip_src = packet[IP].src
+        ip_dst = packet[IP].dst
+        
+        # 2. Identify the Transport Layer Protocol
+        protocol_name = "Other/Unknown"
+        if packet.haslayer(TCP):
+            protocol_name = "TCP"
+        elif packet.haslayer(UDP):
+            protocol_name = "UDP"
+        elif packet.haslayer(ICMP):
+            protocol_name = "ICMP"
+
+        # Display basic routing information
+        print(f"\n[+] Packet Captured | {ip_src} -> {ip_dst} | Protocol: {protocol_name}")
+
+        # 3. Extract and display the payload (Raw data)
+        # The "Raw" layer contains the actual application data (e.g., HTTP text, DNS queries)
+        if packet.haslayer("Raw"):
+            raw_data = packet["Raw"].load
+            # We truncate the payload to 75 characters to keep the console output readable
+            print(f"    Payload: {raw_data[:75]}...") 
+        else:
+            print("    Payload: [No Raw Data]")
+
+if __name__ == "__main__":
+    print("Starting network sniffer... (Press Ctrl+C to stop)")
+    print("--------------------------------------------------")
+    
+    try:
+        # sniff() is the core scapy function.
+        # prn: The callback function to execute on each packet.
+        # store=False: Discards packets after processing so we don't run out of RAM.
+        sniff(prn=packet_callback, store=False)
+    except KeyboardInterrupt:
+        print("\nSniffing stopped by user.")
+    except PermissionError:
+        print("\n[!] Error: You need administrative/root privileges to capture packets.")
+        print("    Try running the script with 'sudo python sniffer.py' or as an Administrator.")
